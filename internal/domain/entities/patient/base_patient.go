@@ -3,10 +3,15 @@ package patient
 import (
 	"strings"
 
-	"github.com/Arthur-Conti/gi_nutri/internal/infra/formulas"
+	"github.com/Arthur-Conti/gi_nutri/internal/domain/entities/formulas"
+	patientrepository "github.com/Arthur-Conti/gi_nutri/internal/infra/repositories/patient"
+	resultsrepository "github.com/Arthur-Conti/gi_nutri/internal/infra/repositories/results"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type BasePatient struct {
+	ID                         string
+	ResultsID                  string
 	Name                       string
 	Age                        int
 	AgeClassification          PatientAgeClassification
@@ -24,8 +29,8 @@ func NewBasePatient(opts PatientOpts) *BasePatient {
 	return &BasePatient{
 		Name:                       opts.Name,
 		Age:                        opts.Age,
-		AgeClassification:          opts.AgeClassification,
-		SchofieldAgeClassification: opts.SchofieldAgeClassification,
+		AgeClassification:          ClassifyAge(opts.Age),
+		SchofieldAgeClassification: ClassifyAgeSchofield(opts.Age),
 		Sex:                        opts.Sex,
 		Measures:                   opts.Measures,
 		TimeDays:                   opts.TimeDays,
@@ -173,4 +178,56 @@ func (p *BasePatient) CalculateTMB(useHarrisBenedict, useFao, useSchofield, useP
 
 func (p *BasePatient) GetPhysicalActivityResult() {
 	p.PhysicalActivityResult = 1.0
+}
+
+func (p *BasePatient) PatientToModel() patientrepository.PatientModel {
+	id, _ := primitive.ObjectIDFromHex(p.ID)
+	return patientrepository.PatientModel{
+		ID:                         id,
+		Name:                       p.Name,
+		Age:                        p.Age,
+		AgeClassification:          string(p.AgeClassification),
+		SchofieldAgeClassification: string(p.SchofieldAgeClassification),
+		Sex:                        string(p.Sex),
+		UsualWeight:                p.UsualWeight,
+		PhysicalActivity:           string(p.PhysicalActivity),
+	}
+}
+
+func (p *BasePatient) ResultsToModel() resultsrepository.ResultsModel {
+	resultsID, _ := primitive.ObjectIDFromHex(p.ResultsID)
+	patientID, _ := primitive.ObjectIDFromHex(p.ID)
+	return resultsrepository.ResultsModel{
+		ID:        resultsID,
+		PatientID: patientID,
+		Measures: resultsrepository.Measures{
+			HeightCM: p.Measures.HeightCM,
+			HeightM:  p.Measures.HeightM,
+			Weight:   p.Measures.Weight,
+		},
+		Formulas: resultsrepository.Formulas{
+			IMC: resultsrepository.IMC{
+				Status: string(p.FormulasInfo.IMC.Status),
+				Result: p.FormulasInfo.IMC.Result,
+			},
+			AdjustedWeightObesity: resultsrepository.AdjustedWeightObesity{
+				IdealWeight: p.FormulasInfo.AdjustedWeight.IdealWeight,
+				Result:      p.FormulasInfo.AdjustedWeight.Result,
+			},
+			PercentageWeightAdequacy: resultsrepository.PercentageWeightAdequacy{
+				Classification: string(p.FormulasInfo.PercentageWeightAdequacy.Classification),
+				Result:         p.FormulasInfo.PercentageWeightAdequacy.Result,
+			},
+			PercentageWeightChange: resultsrepository.PercentageWeightChange{
+				Classification: string(p.FormulasInfo.PercentageWeightChange.Classification),
+				Result:         p.FormulasInfo.PercentageWeightChange.Result,
+			},
+			EER: resultsrepository.EER{
+				Result: p.FormulasInfo.EER.Result,
+			},
+			TMB: resultsrepository.TMB{
+				Result: p.FormulasInfo.TMB.Result,
+			},
+		},
+	}
 }

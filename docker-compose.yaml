@@ -1,0 +1,41 @@
+services:
+  app:
+    build: .
+    container_name: go-mongo-app
+    ports:
+      - "8080:8080"
+    environment:
+      # A URI padrão: mongodb://usuario:senha@host:porta
+      - MONGO_URI=mongodb://root:rootpassword@mongo:27017
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  mongo:
+    image: mongo:6.0
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+    # Healthcheck para garantir que o Mongo aceita conexões antes do Go subir
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo-data:
+
+networks:
+  app-network:
+    driver: bridge

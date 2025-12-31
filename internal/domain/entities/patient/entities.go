@@ -1,12 +1,11 @@
 package patient
 
-import "github.com/Arthur-Conti/gi_nutri/internal/infra/formulas"
+import "github.com/Arthur-Conti/gi_nutri/internal/domain/entities/formulas"
+
 
 type PatientOpts struct {
 	Name                       string
 	Age                        int
-	AgeClassification          PatientAgeClassification
-	SchofieldAgeClassification SchofieldAgeClassification
 	TimeDays                   int
 	Sex                        PatientSex
 	Height                     float64

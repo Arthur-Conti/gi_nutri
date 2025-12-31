@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/Arthur-Conti/gi_nutri/internal/infra/patient"
+	"github.com/Arthur-Conti/gi_nutri/internal/domain/entities/patient"
 )
 
 func main() {
