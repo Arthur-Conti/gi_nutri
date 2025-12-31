@@ -7,40 +7,57 @@ import (
 )
 
 func main() {
-	name := "Gabriela"
-	age := 58
-	timeDays := 90
-	height := 162.0
-	weight := 61.0
-	usualWeight := 70.0
-	p := patient.NewPatient(
-		name,
-		age,
-		timeDays,
-		height,
-		weight,
-		usualWeight,
-	)
-	p.CalculateIMC()
-	p.CalculateAdjustedWeight()
-	p.CalculatePercentageWeightAdequacy()
-	p.CalculatePercentageWeightChange()
+	patientOpts := patient.PatientOpts{
+		Name:             "Arthur",
+		Age:              22,
+		Sex:              patient.PatientSexMale,
+		Height:           176.0,
+		Weight:           65.0,
+		UsualWeight:      70.0,
+		TimeDays:         30,
+		PhysicalActivity: patient.PhysicalActivitySedentary,
+	}
+	p := patient.NewPatient(patientOpts)
 
-	fmt.Println("IMC Status:", p.FormulasInfo.IMC.Status)
-	fmt.Println("IMC Resultado:", p.FormulasInfo.IMC.Result)
+	if err := p.CalculateIMC(); err != nil {
+		fmt.Printf("Erro ao calcular IMC: %v\n", err)
+		return
+	}
+
+	if err := p.CalculateAdjustedWeight(); err != nil {
+		fmt.Printf("Aviso ao calcular AdjustedWeight: %v\n", err)
+	}
+
+	if err := p.CalculatePercentageWeightAdequacy(); err != nil {
+		fmt.Printf("Erro ao calcular PercentageWeightAdequacy: %v\n", err)
+	}
+
+	if err := p.CalculatePercentageWeightChange(); err != nil {
+		fmt.Printf("Erro ao calcular PercentageWeightChange: %v\n", err)
+	}
+
+	if err := p.CalculateEER(); err != nil {
+		fmt.Printf("Erro ao calcular EER: %v\n", err)
+		return
+	}
+
+	if err := p.CalculateTMB(false, false, false, true, 25.0); err != nil {
+		fmt.Printf("Erro ao calcular TMB: %v\n", err)
+		return
+	}
+
+	fmt.Println("IMC Status:", p.GetFormulas().IMC.Status)
+	fmt.Println("IMC Resultado:", p.GetFormulas().IMC.Result)
 
 	fmt.Println("-----------------------------------------------------------")
-	
-	fmt.Println("Peso ajustado:", p.FormulasInfo.AdjustedWeight.Result)
-	fmt.Println("Peso ideal:", p.FormulasInfo.AdjustedWeight.IdealWeight)
-	
-	fmt.Println("-----------------------------------------------------------")
-	
-	fmt.Printf("Porcentagem de adequação de peso: %v%%\n", p.FormulasInfo.PercentageWeightAdequacy.Result)
-	fmt.Println("Classificação de adequação de peso:", p.FormulasInfo.PercentageWeightAdequacy.Classification)
-	
+
+	if p.GetFormulas().EER != nil {
+		fmt.Println("EER:", p.GetFormulas().EER.Result)
+	}
+
 	fmt.Println("-----------------------------------------------------------")
 
-	fmt.Printf("Porcentagem de mudança de peso: %v%%\n", p.FormulasInfo.PercentageWeightChange.Result)
-	fmt.Println("Classificação de mudança de peso:", p.FormulasInfo.PercentageWeightChange.Classification)
+	if p.GetFormulas().TMB != nil {
+		fmt.Println("TMB:", p.GetFormulas().TMB.Result)
+	}
 }
