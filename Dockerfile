@@ -1,5 +1,5 @@
 # Estágio de Build
-FROM golang:1.23-alpine AS builder
+FROM golang:alpine AS builder
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ RUN go mod download
 
 # Copia o código fonte e compila
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/main.go
 
 # Estágio Final (Imagem leve)
 FROM alpine:latest

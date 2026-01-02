@@ -1,6 +1,7 @@
 package patient
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/Arthur-Conti/gi_nutri/internal/domain/entities/formulas"
@@ -11,18 +12,18 @@ import (
 
 type BasePatient struct {
 	ID                         string
-	ResultsID                  string
 	Name                       string
 	Age                        int
 	AgeClassification          PatientAgeClassification
 	SchofieldAgeClassification SchofieldAgeClassification
 	Sex                        PatientSex
+	Height                     float64
+	Weight                     float64
 	UsualWeight                float64
 	TimeDays                   int
 	PhysicalActivity           PhysicalActivity
 	PhysicalActivityResult     float64
-	Measures                   Measures
-	FormulasInfo               FormulasInfo
+	Results                    Results
 }
 
 func NewBasePatient(opts PatientOpts) *BasePatient {
@@ -32,36 +33,45 @@ func NewBasePatient(opts PatientOpts) *BasePatient {
 		AgeClassification:          ClassifyAge(opts.Age),
 		SchofieldAgeClassification: ClassifyAgeSchofield(opts.Age),
 		Sex:                        opts.Sex,
-		Measures:                   opts.Measures,
 		TimeDays:                   opts.TimeDays,
 		PhysicalActivity:           opts.PhysicalActivity,
+		Height:                     opts.Height,
+		Weight:                     opts.Weight,
 		UsualWeight:                opts.UsualWeight,
+		Results: Results{
+			Measures: Measures{
+				HeightCM: opts.Height,
+				HeightM:  heightMeters(opts.Height),
+				Weight:   opts.Weight,
+			},
+		},
 	}
 }
 
-func (p *BasePatient) GetFormulas() FormulasInfo {
-	return p.FormulasInfo
+func (p *BasePatient) GetResults() Results {
+	return p.Results
 }
 
 func (p *BasePatient) CalculateIMC() error {
-	if p.Measures.Weight <= 0 {
+	if p.Results.Measures.Weight <= 0 {
 		return NewValidationError("Weight", "Weight must be greater than 0")
 	}
-	if p.Measures.HeightM <= 0 {
+	if p.Results.Measures.HeightM <= 0 {
 		return NewValidationError("HeightM", "Height must be greater than 0")
 	}
 
-	p.FormulasInfo.IMC = formulas.NewImc(
-		p.Measures.Weight,
-		p.Measures.HeightM,
+	p.Results.FormulasInfo.IMC = formulas.NewImc(
+		p.Results.Measures.Weight,
+		p.Results.Measures.HeightM,
 		string(p.AgeClassification),
 	)
-	p.FormulasInfo.IMC.Calculate()
+	p.Results.FormulasInfo.IMC.Calculate()
+
 	return nil
 }
 
 func (p *BasePatient) CalculateAdjustedWeight() error {
-	if p.FormulasInfo.IMC == nil {
+	if p.Results.FormulasInfo.IMC == nil {
 		return NewFormulaDependencyError(
 			"AdjustedWeight",
 			"IMC",
@@ -69,23 +79,25 @@ func (p *BasePatient) CalculateAdjustedWeight() error {
 		)
 	}
 
-	if !strings.HasPrefix(string(p.FormulasInfo.IMC.Status), "obesity") {
+	if !strings.HasPrefix(string(p.Results.FormulasInfo.IMC.Status), "obesity") {
 		return NewValidationError(
 			"IMC.Status",
 			"AdjustedWeight formula is only applicable for obese patients",
 		)
 	}
 
-	p.FormulasInfo.AdjustedWeight = formulas.NewAdjustedWeightObesity(
-		p.Measures.Weight,
+	fmt.Printf("%+v\n", *p.Results.FormulasInfo.IMC)
+
+	p.Results.FormulasInfo.AdjustedWeight = formulas.NewAdjustedWeightObesity(
+		p.Results.Measures.Weight,
 		string(p.AgeClassification),
-		*p.FormulasInfo.IMC,
+		*p.Results.FormulasInfo.IMC,
 	)
 	return nil
 }
 
 func (p *BasePatient) CalculatePercentageWeightAdequacy() error {
-	if p.FormulasInfo.AdjustedWeight == nil {
+	if p.Results.FormulasInfo.AdjustedWeight == nil {
 		return NewFormulaDependencyError(
 			"PercentageWeightAdequacy",
 			"AdjustedWeight",
@@ -100,9 +112,17 @@ func (p *BasePatient) CalculatePercentageWeightAdequacy() error {
 		)
 	}
 
-	p.FormulasInfo.PercentageWeightAdequacy = formulas.NewPercentageWeightAdequacy(
-		p.Measures.Weight,
-		p.FormulasInfo.AdjustedWeight.IdealWeight,
+	if p.Results.FormulasInfo.AdjustedWeight.IdealWeight == 0 {
+		return NewFormulaDependencyError(
+			"PercentageWeightAdequacy",
+			"AdjustedWeight",
+			"Calculate AdjutedWeight first",
+		)
+	}
+
+	p.Results.FormulasInfo.PercentageWeightAdequacy = formulas.NewPercentageWeightAdequacy(
+		p.Results.Measures.Weight,
+		p.Results.FormulasInfo.AdjustedWeight.IdealWeight,
 	)
 	return nil
 }
@@ -122,9 +142,9 @@ func (p *BasePatient) CalculatePercentageWeightChange() error {
 		)
 	}
 
-	p.FormulasInfo.PercentageWeightChange = formulas.NewPercentageWeightChange(
+	p.Results.FormulasInfo.PercentageWeightChange = formulas.NewPercentageWeightChange(
 		p.UsualWeight,
-		p.Measures.Weight,
+		p.Results.Measures.Weight,
 		p.TimeDays,
 	)
 	return nil
@@ -138,23 +158,23 @@ func (p *BasePatient) CalculateEER() error {
 		)
 	}
 
-	p.FormulasInfo.EER = formulas.NewEER(
+	p.Results.FormulasInfo.EER = formulas.NewEER(
 		p.Age,
 		string(p.AgeClassification),
 		string(p.Sex),
-		p.Measures.Weight,
-		p.Measures.HeightM,
+		p.Results.Measures.Weight,
+		p.Results.Measures.HeightM,
 		p.PhysicalActivityResult,
 	)
-	p.FormulasInfo.EER.Calculate()
+	p.Results.FormulasInfo.EER.Calculate()
 	return nil
 }
 
 func (p *BasePatient) CalculateTMB(useHarrisBenedict, useFao, useSchofield, usePocket bool, pocketValue float64) error {
-	if p.Measures.Weight <= 0 {
+	if p.Results.Measures.Weight <= 0 {
 		return NewValidationError("Weight", "Weight must be greater than 0")
 	}
-	if p.Measures.HeightCM <= 0 {
+	if p.Results.Measures.HeightCM <= 0 {
 		return NewValidationError("HeightCM", "Height must be greater than 0")
 	}
 
@@ -165,14 +185,14 @@ func (p *BasePatient) CalculateTMB(useHarrisBenedict, useFao, useSchofield, useP
 		)
 	}
 
-	p.FormulasInfo.TMB = formulas.NewTMB(
-		p.Measures.Weight,
-		p.Measures.HeightCM,
+	p.Results.FormulasInfo.TMB = formulas.NewTMB(
+		p.Results.Measures.Weight,
+		p.Results.Measures.HeightCM,
 		p.Age,
 		string(p.SchofieldAgeClassification),
 		string(p.Sex),
 	)
-	p.FormulasInfo.TMB.Calculate(useHarrisBenedict, useFao, useSchofield, usePocket, pocketValue)
+	p.Results.FormulasInfo.TMB.Calculate(useHarrisBenedict, useFao, useSchofield, usePocket, pocketValue)
 	return nil
 }
 
@@ -181,53 +201,132 @@ func (p *BasePatient) GetPhysicalActivityResult() {
 }
 
 func (p *BasePatient) PatientToModel() patientrepository.PatientModel {
-	id, _ := primitive.ObjectIDFromHex(p.ID)
 	return patientrepository.PatientModel{
-		ID:                         id,
 		Name:                       p.Name,
 		Age:                        p.Age,
 		AgeClassification:          string(p.AgeClassification),
 		SchofieldAgeClassification: string(p.SchofieldAgeClassification),
+		TimeDays:                   p.TimeDays,
 		Sex:                        string(p.Sex),
+		Height:                     p.Height,
+		Weight:                     p.Weight,
 		UsualWeight:                p.UsualWeight,
 		PhysicalActivity:           string(p.PhysicalActivity),
 	}
 }
 
 func (p *BasePatient) ResultsToModel() resultsrepository.ResultsModel {
-	resultsID, _ := primitive.ObjectIDFromHex(p.ResultsID)
 	patientID, _ := primitive.ObjectIDFromHex(p.ID)
+
+	measures := resultsrepository.Measures{
+		HeightCM: p.Results.Measures.HeightCM,
+		HeightM:  p.Results.Measures.HeightM,
+		Weight:   p.Results.Measures.Weight,
+	}
+
+	var imc resultsrepository.IMC
+	if p.Results.FormulasInfo.IMC != nil {
+		imc = resultsrepository.IMC{
+			Status: string(p.Results.FormulasInfo.IMC.Status),
+			Result: p.Results.FormulasInfo.IMC.Result,
+		}
+	}
+
+	var adjustedWeight resultsrepository.AdjustedWeightObesity
+	if p.Results.FormulasInfo.AdjustedWeight != nil {
+		adjustedWeight = resultsrepository.AdjustedWeightObesity{
+			IdealWeight: p.Results.FormulasInfo.AdjustedWeight.IdealWeight,
+			Result:      p.Results.FormulasInfo.AdjustedWeight.Result,
+		}
+	}
+
+	var percentageWeightAdequacy resultsrepository.PercentageWeightAdequacy
+	if p.Results.FormulasInfo.PercentageWeightAdequacy != nil {
+		percentageWeightAdequacy = resultsrepository.PercentageWeightAdequacy{
+			Classification: string(p.Results.FormulasInfo.PercentageWeightAdequacy.Classification),
+			Result:         p.Results.FormulasInfo.PercentageWeightAdequacy.Result,
+		}
+	}
+
+	var percentageWeightChange resultsrepository.PercentageWeightChange
+	if p.Results.FormulasInfo.PercentageWeightChange != nil {
+		percentageWeightChange = resultsrepository.PercentageWeightChange{
+			Classification: string(p.Results.FormulasInfo.PercentageWeightChange.Classification),
+			Result:         p.Results.FormulasInfo.PercentageWeightChange.Result,
+		}
+	}
+
+	var eer resultsrepository.EER
+	if p.Results.FormulasInfo.EER != nil {
+		eer = resultsrepository.EER{
+			Result: p.Results.FormulasInfo.EER.Result,
+		}
+	}
+
+	var tmb resultsrepository.TMB
+	if p.Results.FormulasInfo.TMB != nil {
+		tmb = resultsrepository.TMB{
+			Result: p.Results.FormulasInfo.TMB.Result,
+		}
+	}
+
+	formulas := resultsrepository.Formulas{
+		IMC:                      imc,
+		AdjustedWeightObesity:    adjustedWeight,
+		PercentageWeightAdequacy: percentageWeightAdequacy,
+		PercentageWeightChange:   percentageWeightChange,
+		EER:                      eer,
+		TMB:                      tmb,
+	}
+
 	return resultsrepository.ResultsModel{
-		ID:        resultsID,
 		PatientID: patientID,
-		Measures: resultsrepository.Measures{
-			HeightCM: p.Measures.HeightCM,
-			HeightM:  p.Measures.HeightM,
-			Weight:   p.Measures.Weight,
-		},
-		Formulas: resultsrepository.Formulas{
-			IMC: resultsrepository.IMC{
-				Status: string(p.FormulasInfo.IMC.Status),
-				Result: p.FormulasInfo.IMC.Result,
-			},
-			AdjustedWeightObesity: resultsrepository.AdjustedWeightObesity{
-				IdealWeight: p.FormulasInfo.AdjustedWeight.IdealWeight,
-				Result:      p.FormulasInfo.AdjustedWeight.Result,
-			},
-			PercentageWeightAdequacy: resultsrepository.PercentageWeightAdequacy{
-				Classification: string(p.FormulasInfo.PercentageWeightAdequacy.Classification),
-				Result:         p.FormulasInfo.PercentageWeightAdequacy.Result,
-			},
-			PercentageWeightChange: resultsrepository.PercentageWeightChange{
-				Classification: string(p.FormulasInfo.PercentageWeightChange.Classification),
-				Result:         p.FormulasInfo.PercentageWeightChange.Result,
-			},
-			EER: resultsrepository.EER{
-				Result: p.FormulasInfo.EER.Result,
-			},
-			TMB: resultsrepository.TMB{
-				Result: p.FormulasInfo.TMB.Result,
-			},
-		},
+		Measures:  measures,
+		Formulas:  formulas,
+	}
+}
+
+func (p *BasePatient) FillResults(model resultsrepository.ResultsModel) {
+	imc := formulas.IMC{
+		Status: formulas.IMCStatus(model.Formulas.IMC.Status),
+		Result: model.Formulas.IMC.Result,
+	}
+
+	adjustedWeight := formulas.AdjustedWeightObesity{
+		IdealWeight: model.Formulas.AdjustedWeightObesity.IdealWeight,
+		Result:      model.Formulas.AdjustedWeightObesity.Result,
+	}
+
+	percentageWeightAdequacy := formulas.PercentageWeightAdequacy{
+		Classification: formulas.WeightAdequacyClassification(model.Formulas.PercentageWeightAdequacy.Classification),
+		Result:         model.Formulas.PercentageWeightAdequacy.Result,
+	}
+
+	percentageWeightChange := formulas.PercentageWeightChange{
+		Classification: formulas.WeightChangeClassification(model.Formulas.PercentageWeightChange.Classification),
+		Result:         model.Formulas.PercentageWeightChange.Result,
+	}
+
+	eer := formulas.EER{
+		Result: model.Formulas.EER.Result,
+	}
+
+	tmb := formulas.TMB{
+		Result: model.Formulas.TMB.Result,
+	}
+
+	formulas := FormulasInfo{
+		IMC:                      &imc,
+		AdjustedWeight:           &adjustedWeight,
+		PercentageWeightAdequacy: &percentageWeightAdequacy,
+		PercentageWeightChange:   &percentageWeightChange,
+		EER:                      &eer,
+		TMB:                      &tmb,
+	}
+
+	p.Results = Results{
+		ResultsID:    model.ID.Hex(),
+		Measures:     Measures(model.Measures),
+		FormulasInfo: formulas,
 	}
 }

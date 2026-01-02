@@ -1,3 +1,0 @@
-package factory
-
-func NewPatientServiceFactory() 

@@ -14,19 +14,14 @@ type Patient interface {
 	CalculatePercentageWeightChange() error
 	CalculateEER() error
 	CalculateTMB(useHarrisBenedict, useFao, useSchofield, usePocket bool, pocketValue float64) error
-	GetFormulas() FormulasInfo
+	GetResults() Results
 	PatientToModel() patientrepository.PatientModel
 	ResultsToModel() resultsrepository.ResultsModel
+	FillResults(model resultsrepository.ResultsModel)
 }
 
 func NewPatient(opts PatientOpts) Patient {
 	var patient Patient
-
-	opts.Measures = Measures{
-		HeightCM: opts.Height,
-		HeightM:  heightMeters(opts.Height),
-		Weight:   opts.Weight,
-	}
 
 	switch opts.Sex {
 	case PatientSexMale:
@@ -52,11 +47,28 @@ func NewPatientFromDTO(dto dtos.PatientDTO) Patient {
 		Weight:           dto.Measures.Weight,
 		UsualWeight:      dto.UsualWeight,
 		PhysicalActivity: PhysicalActivity(dto.PhysicalActivity),
-		Measures:         Measures(dto.Measures),
 		IsPregnant:       dto.IsPregnant,
 		PregnancyInfo:    PregnancyInfo(dto.PregnancyInfo),
 		IsLactating:      dto.IsLactating,
 		LactatingInfo:    LactatingInfo(dto.LactatingInfo),
+	}
+	return NewPatient(opts)
+}
+
+func NewPatientFromModel(model patientrepository.PatientModel) Patient {
+	opts := PatientOpts{
+		Name:             model.Name,
+		Age:              model.Age,
+		TimeDays:         model.TimeDays,
+		Sex:              PatientSex(model.Sex),
+		Height:           model.Height,
+		Weight:           model.Weight,
+		UsualWeight:      model.UsualWeight,
+		PhysicalActivity: PhysicalActivity(model.PhysicalActivity),
+		IsPregnant:       model.IsPregnant,
+		PregnancyInfo:    PregnancyInfo(model.PregnancyInfo),
+		IsLactating:      model.IsLactating,
+		LactatingInfo:    LactatingInfo(model.LactatingInfo),
 	}
 	return NewPatient(opts)
 }

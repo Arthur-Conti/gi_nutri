@@ -3,17 +3,17 @@ package patientcontroller
 import (
 	"net/http"
 
-	patientservice "github.com/Arthur-Conti/gi_nutri/internal/application/services/patient"
+	portsservices "github.com/Arthur-Conti/gi_nutri/internal/application/ports/services"
 	"github.com/Arthur-Conti/gi_nutri/internal/domain/dtos"
 	"github.com/Arthur-Conti/gi_nutri/internal/infra/http/controllers"
 	"github.com/gin-gonic/gin"
 )
 
 type PatientController struct {
-	svc *patientservice.PatientService
+	svc portsservices.PatientService
 }
 
-func NewPatientController(svc *patientservice.PatientService) *PatientController {
+func NewPatientController(svc portsservices.PatientService) *PatientController {
 	return &PatientController{
 		svc: svc,
 	}
@@ -23,11 +23,11 @@ func (pc *PatientController) CreateHandler(c *gin.Context) {
 	var input SchemaCreate
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		controllers.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+		controllers.NewErrorResponse(c, http.StatusBadRequest, "invalid request body: "+err.Error())
 		return
 	}
 
-	id, err := pc.svc.Create(dtos.PatientDTO{
+	id, err := pc.svc.Create(c.Request.Context(), dtos.PatientDTO{
 		Name:             input.Name,
 		Age:              input.Age,
 		Sex:              input.Sex,
@@ -48,4 +48,14 @@ func (pc *PatientController) CreateHandler(c *gin.Context) {
 	}
 
 	controllers.NewSuccessResponse(c, http.StatusCreated, "Patient Created", CreateOrUpdateResponde{ID: id})
+}
+
+func (pc *PatientController) ListHandler(c *gin.Context) {
+	patients, err := pc.svc.List(c.Request.Context())
+	if err != nil {
+		controllers.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	controllers.NewSuccessResponse(c, http.StatusOK, "Patients Listed", patients)
 }

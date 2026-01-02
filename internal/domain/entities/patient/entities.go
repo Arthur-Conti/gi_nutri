@@ -2,21 +2,25 @@ package patient
 
 import "github.com/Arthur-Conti/gi_nutri/internal/domain/entities/formulas"
 
-
 type PatientOpts struct {
-	Name                       string
-	Age                        int
-	TimeDays                   int
-	Sex                        PatientSex
-	Height                     float64
-	Weight                     float64
-	UsualWeight                float64
-	PhysicalActivity           PhysicalActivity
-	Measures                   Measures
-	IsPregnant                 bool
-	PregnancyInfo              PregnancyInfo
-	IsLactating                bool
-	LactatingInfo              LactatingInfo
+	Name             string
+	Age              int
+	TimeDays         int
+	Sex              PatientSex
+	Height           float64
+	Weight           float64
+	UsualWeight      float64
+	PhysicalActivity PhysicalActivity
+	IsPregnant       bool
+	PregnancyInfo    PregnancyInfo
+	IsLactating      bool
+	LactatingInfo    LactatingInfo
+}
+
+type Results struct {
+	ResultsID    string
+	Measures     Measures
+	FormulasInfo FormulasInfo
 }
 
 type Measures struct {

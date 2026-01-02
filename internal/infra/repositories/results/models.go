@@ -21,38 +21,38 @@ type Measures struct {
 }
 
 type Formulas struct {
-	IMC                      IMC
-	AdjustedWeightObesity    AdjustedWeightObesity
-	PercentageWeightAdequacy PercentageWeightAdequacy
-	PercentageWeightChange   PercentageWeightChange
-	EER                      EER
-	TMB                      TMB
+	IMC                      IMC                      `bson:"imc,omitempty"`
+	AdjustedWeightObesity    AdjustedWeightObesity    `bson:"adjusted_weight_obesity,omitempty"`
+	PercentageWeightAdequacy PercentageWeightAdequacy `bson:"percentage_weight_adequacy,omitempty"`
+	PercentageWeightChange   PercentageWeightChange   `bson:"percentage_weight_change,omitempty"`
+	EER                      EER                      `bson:"eer,omitempty"`
+	TMB                      TMB                      `bson:"tmb,omitempty"`
 }
 
 type IMC struct {
-	Status string
-	Result float64
+	Status string  `bson:"status"`
+	Result float64 `bson:"result"`
 }
 
 type AdjustedWeightObesity struct {
-	IdealWeight float64
-	Result      float64
+	IdealWeight float64 `bson:"ideal_weight"`
+	Result      float64 `bson:"result"`
 }
 
 type PercentageWeightAdequacy struct {
-	Classification string
-	Result         float64
+	Classification string  `bson:"classfication"`
+	Result         float64 `bson:"result"`
 }
 
 type PercentageWeightChange struct {
-	Classification string
-	Result         float64
+	Classification string  `bson:"classification"`
+	Result         float64 `bson:"result"`
 }
 
 type EER struct {
-	Result float64
+	Result float64 `bson:"result"`
 }
 
 type TMB struct {
-	Result float64
+	Result float64 `bson:"result"`
 }

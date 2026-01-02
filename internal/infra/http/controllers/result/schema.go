@@ -1,4 +1,4 @@
-package patientcontroller
+package resultcontroller
 
 import "time"
 
@@ -61,4 +61,19 @@ type SchemaList struct {
 	CreatedAt                  time.Time     `json:"created_at"`
 	UpdatedAt                  time.Time     `json:"updated_at"`
 	Finished                   bool          `json:"finished"`
+}
+
+type SchemaIMC struct {
+	Status string  `json:"status"`
+	Result float64 `json:"result"`
+}
+
+type SchemaAdjutedWeight struct {
+	Result      float64 `json:"result"`
+	IdealWeight float64 `json:"ideal_weight"`
+}
+
+type SchemaPercentageWeight struct {
+	Classification string  `json:"classification"`
+	Result         float64 `json:"result"`
 }

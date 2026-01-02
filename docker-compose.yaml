@@ -1,37 +1,39 @@
 services:
   app:
     build: .
-    container_name: go-mongo-app
+    container_name: go_app
+    restart: always
     ports:
-      - "8080:8080"
+      - "8080:8080" # Porta Externa : Porta Interna do Container
     environment:
-      # A URI padrão: mongodb://usuario:senha@host:porta
-      - MONGO_URI=mongodb://root:rootpassword@mongo:27017
+      # URL de conexão. Note que o host é 'mongodb', o nome do serviço abaixo
+      - MONGO_URI=mongodb://root:example@mongodb:27017/?authSource=admin
+      - PORT=8080
     depends_on:
-      mongo:
+      mongodb:
         condition: service_healthy
     networks:
       - app-network
 
-  mongo:
+  mongodb:
     image: mongo:6.0
     container_name: mongodb
     restart: always
+    ports:
+      - "27017:27017" # Para acessar via Compass/Studio 3T na sua máquina
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: rootpassword
-    ports:
-      - "27017:27017"
+      MONGO_INITDB_ROOT_PASSWORD: example
     volumes:
-      - mongo-data:/data/db
+      - mongo-data:/data/db # Persistência dos dados
     networks:
       - app-network
-    # Healthcheck para garantir que o Mongo aceita conexões antes do Go subir
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: mongosh --eval "db.adminCommand('ping')" --username root --password example --authenticationDatabase admin --quiet
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 20s
 
 volumes:
   mongo-data:
