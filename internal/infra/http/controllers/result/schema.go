@@ -77,3 +77,15 @@ type SchemaPercentageWeight struct {
 	Classification string  `json:"classification"`
 	Result         float64 `json:"result"`
 }
+
+type SchemaEER struct {
+	Result float64 `json:"result"`
+}
+
+type SchemaTMBChoice struct {
+	HarrisBenedict bool    `form:"harris_benedict"`
+	FAO            bool    `form:"fao"`
+	Schofield      bool    `form:"schofield"`
+	Pocket         bool    `form:"pocket"`
+	PocketValue    float64 `form:"pocket_value"`
+}

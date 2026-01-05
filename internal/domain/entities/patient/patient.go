@@ -2,8 +2,7 @@ package patient
 
 import (
 	"github.com/Arthur-Conti/gi_nutri/internal/domain/dtos"
-	patientrepository "github.com/Arthur-Conti/gi_nutri/internal/infra/repositories/patient"
-	resultsrepository "github.com/Arthur-Conti/gi_nutri/internal/infra/repositories/results"
+	"github.com/Arthur-Conti/gi_nutri/internal/domain/entities/formulas"
 )
 
 type Patient interface {
@@ -13,11 +12,10 @@ type Patient interface {
 	CalculatePercentageWeightAdequacy() error
 	CalculatePercentageWeightChange() error
 	CalculateEER() error
-	CalculateTMB(useHarrisBenedict, useFao, useSchofield, usePocket bool, pocketValue float64) error
+	CalculateTMB(choice formulas.TMBFormulas) error
 	GetResults() Results
-	PatientToModel() patientrepository.PatientModel
-	ResultsToModel() resultsrepository.ResultsModel
-	FillResults(model resultsrepository.ResultsModel)
+	GetData() PatientData
+	SetResults(results Results)
 }
 
 func NewPatient(opts PatientOpts) Patient {
@@ -51,24 +49,6 @@ func NewPatientFromDTO(dto dtos.PatientDTO) Patient {
 		PregnancyInfo:    PregnancyInfo(dto.PregnancyInfo),
 		IsLactating:      dto.IsLactating,
 		LactatingInfo:    LactatingInfo(dto.LactatingInfo),
-	}
-	return NewPatient(opts)
-}
-
-func NewPatientFromModel(model patientrepository.PatientModel) Patient {
-	opts := PatientOpts{
-		Name:             model.Name,
-		Age:              model.Age,
-		TimeDays:         model.TimeDays,
-		Sex:              PatientSex(model.Sex),
-		Height:           model.Height,
-		Weight:           model.Weight,
-		UsualWeight:      model.UsualWeight,
-		PhysicalActivity: PhysicalActivity(model.PhysicalActivity),
-		IsPregnant:       model.IsPregnant,
-		PregnancyInfo:    PregnancyInfo(model.PregnancyInfo),
-		IsLactating:      model.IsLactating,
-		LactatingInfo:    LactatingInfo(model.LactatingInfo),
 	}
 	return NewPatient(opts)
 }

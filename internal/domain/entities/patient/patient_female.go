@@ -25,3 +25,12 @@ func (p *PatientFemale) GetPhysicalActivityResult() {
 		p.PhysicalActivity,
 	)
 }
+
+func (p *PatientFemale) GetData() PatientData {
+	data := p.BasePatient.GetData()
+	data.IsPregnant = p.IsPregnant
+	data.PregnancyInfo = p.PregnancyInfo
+	data.IsLactating = p.IsLactating
+	data.LactatingInfo = p.LactatingInfo
+	return data
+}

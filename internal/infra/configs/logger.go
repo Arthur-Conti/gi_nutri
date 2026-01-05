@@ -38,7 +38,6 @@ func (l *Logger) Warn(format string, v ...interface{}) {
 	l.warnLog.Output(2, fmt.Sprintf(format, v...))
 }
 
-// Funções de conveniência
 func Info(format string, v ...interface{}) {
 	defaultLogger.Info(format, v...)
 }

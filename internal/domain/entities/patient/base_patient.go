@@ -5,9 +5,6 @@ import (
 	"strings"
 
 	"github.com/Arthur-Conti/gi_nutri/internal/domain/entities/formulas"
-	patientrepository "github.com/Arthur-Conti/gi_nutri/internal/infra/repositories/patient"
-	resultsrepository "github.com/Arthur-Conti/gi_nutri/internal/infra/repositories/results"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type BasePatient struct {
@@ -50,6 +47,32 @@ func NewBasePatient(opts PatientOpts) *BasePatient {
 
 func (p *BasePatient) GetResults() Results {
 	return p.Results
+}
+
+func (p *BasePatient) GetData() PatientData {
+	return PatientData{
+		ID:                         p.ID,
+		Name:                       p.Name,
+		Age:                        p.Age,
+		AgeClassification:          p.AgeClassification,
+		SchofieldAgeClassification: p.SchofieldAgeClassification,
+		Sex:                        p.Sex,
+		Height:                     p.Height,
+		Weight:                     p.Weight,
+		UsualWeight:                p.UsualWeight,
+		TimeDays:                   p.TimeDays,
+		PhysicalActivity:           p.PhysicalActivity,
+		PhysicalActivityResult:     p.PhysicalActivityResult,
+		IsPregnant:                 false, // Será sobrescrito pelas implementações específicas
+		PregnancyInfo:              PregnancyInfo{},
+		IsLactating:                false, // Será sobrescrito pelas implementações específicas
+		LactatingInfo:              LactatingInfo{},
+		Results:                    p.Results,
+	}
+}
+
+func (p *BasePatient) SetResults(results Results) {
+	p.Results = results
 }
 
 func (p *BasePatient) CalculateIMC() error {
@@ -170,7 +193,7 @@ func (p *BasePatient) CalculateEER() error {
 	return nil
 }
 
-func (p *BasePatient) CalculateTMB(useHarrisBenedict, useFao, useSchofield, usePocket bool, pocketValue float64) error {
+func (p *BasePatient) CalculateTMB(choices formulas.TMBFormulas) error {
 	if p.Results.Measures.Weight <= 0 {
 		return NewValidationError("Weight", "Weight must be greater than 0")
 	}
@@ -178,7 +201,7 @@ func (p *BasePatient) CalculateTMB(useHarrisBenedict, useFao, useSchofield, useP
 		return NewValidationError("HeightCM", "Height must be greater than 0")
 	}
 
-	if usePocket && pocketValue == 0 {
+	if choices.Pocket && choices.PocketValue == 0 {
 		return NewValidationError(
 			"pocketValue",
 			"pocketValue must be provided when using pocket method",
@@ -192,7 +215,7 @@ func (p *BasePatient) CalculateTMB(useHarrisBenedict, useFao, useSchofield, useP
 		string(p.SchofieldAgeClassification),
 		string(p.Sex),
 	)
-	p.Results.FormulasInfo.TMB.Calculate(useHarrisBenedict, useFao, useSchofield, usePocket, pocketValue)
+	p.Results.FormulasInfo.TMB.Calculate(choices)
 	return nil
 }
 
@@ -200,133 +223,3 @@ func (p *BasePatient) GetPhysicalActivityResult() {
 	p.PhysicalActivityResult = 1.0
 }
 
-func (p *BasePatient) PatientToModel() patientrepository.PatientModel {
-	return patientrepository.PatientModel{
-		Name:                       p.Name,
-		Age:                        p.Age,
-		AgeClassification:          string(p.AgeClassification),
-		SchofieldAgeClassification: string(p.SchofieldAgeClassification),
-		TimeDays:                   p.TimeDays,
-		Sex:                        string(p.Sex),
-		Height:                     p.Height,
-		Weight:                     p.Weight,
-		UsualWeight:                p.UsualWeight,
-		PhysicalActivity:           string(p.PhysicalActivity),
-	}
-}
-
-func (p *BasePatient) ResultsToModel() resultsrepository.ResultsModel {
-	patientID, _ := primitive.ObjectIDFromHex(p.ID)
-
-	measures := resultsrepository.Measures{
-		HeightCM: p.Results.Measures.HeightCM,
-		HeightM:  p.Results.Measures.HeightM,
-		Weight:   p.Results.Measures.Weight,
-	}
-
-	var imc resultsrepository.IMC
-	if p.Results.FormulasInfo.IMC != nil {
-		imc = resultsrepository.IMC{
-			Status: string(p.Results.FormulasInfo.IMC.Status),
-			Result: p.Results.FormulasInfo.IMC.Result,
-		}
-	}
-
-	var adjustedWeight resultsrepository.AdjustedWeightObesity
-	if p.Results.FormulasInfo.AdjustedWeight != nil {
-		adjustedWeight = resultsrepository.AdjustedWeightObesity{
-			IdealWeight: p.Results.FormulasInfo.AdjustedWeight.IdealWeight,
-			Result:      p.Results.FormulasInfo.AdjustedWeight.Result,
-		}
-	}
-
-	var percentageWeightAdequacy resultsrepository.PercentageWeightAdequacy
-	if p.Results.FormulasInfo.PercentageWeightAdequacy != nil {
-		percentageWeightAdequacy = resultsrepository.PercentageWeightAdequacy{
-			Classification: string(p.Results.FormulasInfo.PercentageWeightAdequacy.Classification),
-			Result:         p.Results.FormulasInfo.PercentageWeightAdequacy.Result,
-		}
-	}
-
-	var percentageWeightChange resultsrepository.PercentageWeightChange
-	if p.Results.FormulasInfo.PercentageWeightChange != nil {
-		percentageWeightChange = resultsrepository.PercentageWeightChange{
-			Classification: string(p.Results.FormulasInfo.PercentageWeightChange.Classification),
-			Result:         p.Results.FormulasInfo.PercentageWeightChange.Result,
-		}
-	}
-
-	var eer resultsrepository.EER
-	if p.Results.FormulasInfo.EER != nil {
-		eer = resultsrepository.EER{
-			Result: p.Results.FormulasInfo.EER.Result,
-		}
-	}
-
-	var tmb resultsrepository.TMB
-	if p.Results.FormulasInfo.TMB != nil {
-		tmb = resultsrepository.TMB{
-			Result: p.Results.FormulasInfo.TMB.Result,
-		}
-	}
-
-	formulas := resultsrepository.Formulas{
-		IMC:                      imc,
-		AdjustedWeightObesity:    adjustedWeight,
-		PercentageWeightAdequacy: percentageWeightAdequacy,
-		PercentageWeightChange:   percentageWeightChange,
-		EER:                      eer,
-		TMB:                      tmb,
-	}
-
-	return resultsrepository.ResultsModel{
-		PatientID: patientID,
-		Measures:  measures,
-		Formulas:  formulas,
-	}
-}
-
-func (p *BasePatient) FillResults(model resultsrepository.ResultsModel) {
-	imc := formulas.IMC{
-		Status: formulas.IMCStatus(model.Formulas.IMC.Status),
-		Result: model.Formulas.IMC.Result,
-	}
-
-	adjustedWeight := formulas.AdjustedWeightObesity{
-		IdealWeight: model.Formulas.AdjustedWeightObesity.IdealWeight,
-		Result:      model.Formulas.AdjustedWeightObesity.Result,
-	}
-
-	percentageWeightAdequacy := formulas.PercentageWeightAdequacy{
-		Classification: formulas.WeightAdequacyClassification(model.Formulas.PercentageWeightAdequacy.Classification),
-		Result:         model.Formulas.PercentageWeightAdequacy.Result,
-	}
-
-	percentageWeightChange := formulas.PercentageWeightChange{
-		Classification: formulas.WeightChangeClassification(model.Formulas.PercentageWeightChange.Classification),
-		Result:         model.Formulas.PercentageWeightChange.Result,
-	}
-
-	eer := formulas.EER{
-		Result: model.Formulas.EER.Result,
-	}
-
-	tmb := formulas.TMB{
-		Result: model.Formulas.TMB.Result,
-	}
-
-	formulas := FormulasInfo{
-		IMC:                      &imc,
-		AdjustedWeight:           &adjustedWeight,
-		PercentageWeightAdequacy: &percentageWeightAdequacy,
-		PercentageWeightChange:   &percentageWeightChange,
-		EER:                      &eer,
-		TMB:                      &tmb,
-	}
-
-	p.Results = Results{
-		ResultsID:    model.ID.Hex(),
-		Measures:     Measures(model.Measures),
-		FormulasInfo: formulas,
-	}
-}

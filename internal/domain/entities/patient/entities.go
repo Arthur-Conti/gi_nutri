@@ -47,6 +47,29 @@ type FormulasInfo struct {
 	TMB                      *formulas.TMB
 }
 
+// PatientData contém os dados do paciente para uso em mappers
+// Esta estrutura permite que a camada de infraestrutura acesse os dados
+// sem conhecer a estrutura interna da entidade
+type PatientData struct {
+	ID                         string
+	Name                       string
+	Age                        int
+	AgeClassification          PatientAgeClassification
+	SchofieldAgeClassification SchofieldAgeClassification
+	Sex                        PatientSex
+	Height                     float64
+	Weight                     float64
+	UsualWeight                float64
+	TimeDays                   int
+	PhysicalActivity           PhysicalActivity
+	PhysicalActivityResult     float64
+	IsPregnant                 bool
+	PregnancyInfo              PregnancyInfo
+	IsLactating                bool
+	LactatingInfo              LactatingInfo
+	Results                    Results
+}
+
 type PatientAgeClassification string
 
 const (

@@ -57,6 +57,14 @@ type TMB struct {
 	Result float64 `json:"result"`
 }
 
+type TMBFormulas struct {
+	HarrisBenedict bool
+	FAO            bool
+	Schofield      bool
+	Pocket         bool
+	PocketValue    float64
+}
+
 func ResultsFromModel(model resultsrepository.ResultsModel) ResultsDTO {
 	return ResultsDTO{
 		ID:         model.ID.Hex(),

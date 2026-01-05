@@ -8,8 +8,7 @@ import (
 	portsrepositories "github.com/Arthur-Conti/gi_nutri/internal/application/ports/repositories"
 	"github.com/Arthur-Conti/gi_nutri/internal/domain/dtos"
 	"github.com/Arthur-Conti/gi_nutri/internal/domain/entities/patient"
-	resultsrepository "github.com/Arthur-Conti/gi_nutri/internal/infra/repositories/results"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/Arthur-Conti/gi_nutri/internal/infra/mappers"
 )
 
 type PatientService struct {
@@ -30,7 +29,7 @@ func NewPatientService(
 func (ps *PatientService) Create(ctx context.Context, patientDto dtos.PatientDTO) (string, error) {
 	entity := patient.NewPatientFromDTO(patientDto)
 
-	patientModel := entity.PatientToModel()
+	patientModel := mappers.PatientEntityToModel(entity)
 	patientModel.CreatedAt = time.Now()
 	patientModel.UpdatedAt = time.Now()
 	patientModel.Deleted = false
@@ -41,15 +40,8 @@ func (ps *PatientService) Create(ctx context.Context, patientDto dtos.PatientDTO
 		return "", fmt.Errorf("failed to create patient: %w", err)
 	}
 
-	objectID, err := primitive.ObjectIDFromHex(patientID)
-	if err != nil {
-		return "", fmt.Errorf("invalid patient id: %w", err)
-	}
-
-	resultsModel := entity.ResultsToModel()
-	resultsModel.PatientID = objectID
+	resultsModel := mappers.ResultsEntityToModel(entity.GetResults(), patientID)
 	resultsModel.RecordedAt = time.Now()
-	resultsModel.Measures = resultsrepository.Measures(entity.GetResults().Measures)
 	
 	_, err = ps.resultsRepo.Create(ctx, resultsModel)
 	if err != nil {

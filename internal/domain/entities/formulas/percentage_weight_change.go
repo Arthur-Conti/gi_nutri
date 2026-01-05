@@ -22,7 +22,7 @@ func NewPercentageWeightChange(usualWeight, currentWeight float64, time int) *Pe
 }
 
 func calculatePercentageWeightChange(usualWeight, currentWeight float64, time int) (WeightChangeClassification, float64) {
-	pupa := (usualWeight - currentWeight) / usualWeight
+	pupa := (currentWeight - usualWeight) / usualWeight
 	result := pupa * 100
 
 	switch time {

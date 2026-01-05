@@ -1,6 +1,8 @@
 package formulas
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type TMB struct {
 	Result                     float64
@@ -9,6 +11,14 @@ type TMB struct {
 	age                        int
 	schofieldAgeClassification string
 	sex                        string
+}
+
+type TMBFormulas struct {
+	HarrisBenedict bool
+	FAO            bool
+	Schofield      bool
+	Pocket         bool
+	PocketValue    float64
 }
 
 func NewTMB(weight, heightCM float64, age int, schofieldAgeClassification, sex string) *TMB {
@@ -21,33 +31,33 @@ func NewTMB(weight, heightCM float64, age int, schofieldAgeClassification, sex s
 	}
 }
 
-func (t *TMB) Calculate(useHarrisBenedict, useFao, useSchofield, usePocket bool, pocketValue float64) {
+func (t *TMB) Calculate(choice TMBFormulas) {
 	switch t.sex {
 	case "male":
-		if useHarrisBenedict {
+		if choice.HarrisBenedict {
 			t.HarrisBenedictMale()
-		} else if useFao {
+		} else if choice.FAO {
 			t.FaoOmsMale()
-		} else if useSchofield {
+		} else if choice.Schofield {
 			t.SchofieldMale()
-		} else if usePocket {
-			if pocketValue == 0.0 {
+		} else if choice.Pocket {
+			if choice.PocketValue == 0.0 {
 				fmt.Println("Error: To use pocket you must provide the value")
 			}
-			t.Pocket(pocketValue)
+			t.Pocket(choice.PocketValue)
 		}
 	case "female":
-		if useHarrisBenedict {
+		if choice.HarrisBenedict {
 			t.HarrisBenedictFemale()
-		} else if useFao {
+		} else if choice.FAO {
 			t.FaoOmsFemale()
-		} else if useSchofield {
+		} else if choice.Schofield {
 			t.SchofieldFemale()
-		} else if usePocket {
-			if pocketValue == 0.0 {
+		} else if choice.Pocket {
+			if choice.PocketValue == 0.0 {
 				fmt.Println("Error: To use pocket you must provide the value")
 			}
-			t.Pocket(pocketValue)
+			t.Pocket(choice.PocketValue)
 		}
 	}
 }
@@ -69,7 +79,6 @@ func (t *TMB) FaoOmsFemale() {
 }
 
 func (t *TMB) SchofieldMale() {
-	fmt.Println(t.schofieldAgeClassification)
 	switch t.schofieldAgeClassification {
 	case "early_kid":
 		t.Result = 59.5*t.weight - 30.4
